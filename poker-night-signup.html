@@ -130,6 +130,63 @@ h1{
 .join button:disabled{opacity:.5;cursor:not-allowed;transform:none;}
 
 /* Table — the signature element */
+.dealer-zone{
+  display:flex;
+  justify-content:center;
+  position:relative;
+  z-index:6;
+  margin-bottom:-16px;
+}
+.dealer-plate{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  background:linear-gradient(180deg,#f6f0de,#dcd2b2);
+  color:var(--wood);
+  padding:9px 18px;
+  border-radius:9px;
+  font-family:'Fraunces',serif;
+  font-weight:700;
+  font-size:13px;
+  letter-spacing:.03em;
+  box-shadow:0 8px 18px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(36,21,16,0.35);
+  cursor:pointer;
+  position:relative;
+  transition:transform .12s ease;
+}
+.dealer-plate:hover{transform:translateY(-1px);}
+.dealer-plate.unset{
+  background:var(--empty);
+  color:var(--cream-dim);
+  border:2px dashed var(--empty-border);
+  box-shadow:none;
+  font-weight:600;
+  font-family:'Inter',sans-serif;
+  font-size:12.5px;
+}
+.dealer-plate .dot{
+  width:8px;height:8px;
+  border-radius:50%;
+  background:var(--brick);
+  flex-shrink:0;
+}
+.dealer-plate.set .dot{background:#2e7d4f;}
+.dealer-plate .dealer-remove{
+  position:absolute;
+  top:-7px; right:-7px;
+  width:19px;height:19px;
+  border-radius:50%;
+  background:var(--brick);
+  color:var(--cream);
+  border:2px solid var(--wood);
+  font-size:11px;
+  line-height:1;
+  cursor:pointer;
+  display:none;
+  align-items:center;justify-content:center;
+}
+.dealer-plate.set:hover .dealer-remove{display:flex;}
+
 .table-frame{
   position:relative;
   width:100%;
@@ -343,6 +400,14 @@ h1{
     <button id="joinBtn">I'm in</button>
   </div>
 
+  <div class="dealer-zone">
+    <div class="dealer-plate unset" id="dealerPlate">
+      <span class="dot"></span>
+      <span id="dealerText">+ Confirm dealer</span>
+      <div class="dealer-remove" id="dealerRemove">✕</div>
+    </div>
+  </div>
+
   <div class="table-frame">
     <div class="rail"></div>
     <div class="felt">
@@ -403,7 +468,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const weekRef = db.ref('poker-signups/' + weekKey);
 
-let state = { main: [], bench: [] };
+let state = { main: [], bench: [], dealer: '' };
 
 function showToast(msg){
   const t = document.getElementById('toast');
@@ -422,7 +487,18 @@ function seatPosition(i, total){
 }
 
 function render(){
-  const { main, bench } = state;
+  const { main, bench, dealer } = state;
+
+  // dealer plate
+  const plate = document.getElementById('dealerPlate');
+  const plateText = document.getElementById('dealerText');
+  if(dealer){
+    plate.className = 'dealer-plate set';
+    plateText.textContent = `Dealer — ${dealer}`;
+  } else {
+    plate.className = 'dealer-plate unset';
+    plateText.textContent = '+ Confirm dealer';
+  }
 
   // status banner
   const banner = document.getElementById('statusBanner');
@@ -499,7 +575,7 @@ function escapeAttr(s){ return escapeHtml(s); }
 // Live listener: fires immediately with current data, then again on every change from anyone
 weekRef.on('value', (snapshot) => {
   const val = snapshot.val();
-  state = { main: (val && val.main) || [], bench: (val && val.bench) || [] };
+  state = { main: (val && val.main) || [], bench: (val && val.bench) || [], dealer: (val && val.dealer) || '' };
   render();
 }, (err) => {
   showToast("Couldn't connect — check your connection");
@@ -571,10 +647,29 @@ document.getElementById('nameInput').addEventListener('keydown', (e)=>{
 document.getElementById('refreshBtn').addEventListener('click', ()=>{
   weekRef.once('value').then(snap=>{
     const val = snap.val();
-    state = { main: (val && val.main) || [], bench: (val && val.bench) || [] };
+    state = { main: (val && val.main) || [], bench: (val && val.bench) || [], dealer: (val && val.dealer) || '' };
     render();
     showToast('Refreshed');
   });
+});
+
+document.getElementById('dealerPlate').addEventListener('click', async (e)=>{
+  if(e.target.id === 'dealerRemove'){
+    e.stopPropagation();
+    const was = state.dealer;
+    state.dealer = '';
+    await saveState();
+    render();
+    showToast(`${was} is no longer dealing`);
+    return;
+  }
+  const name = window.prompt("Who's dealing tonight?", state.dealer || '');
+  if(name === null) return; // cancelled
+  const trimmed = name.trim();
+  state.dealer = trimmed;
+  await saveState();
+  render();
+  if(trimmed) showToast(`${trimmed} confirmed as dealer`);
 });
 </script>
 </body>
