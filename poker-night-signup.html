@@ -12,8 +12,8 @@
   --felt-dark:#0c3a2b;
   --felt:#12563f;
   --felt-light:#1a7052;
-  --wood:#241510;
-  --wood-light:#3a2416;
+  --wood:#1d1b18;
+  --wood-light:#332e27;
   --gold:#d4af37;
   --gold-soft:#e6c866;
   --cream:#f3ecda;
@@ -28,17 +28,34 @@
 html,body{margin:0;padding:0;}
 body{
   background:
-    radial-gradient(ellipse at 50% -10%, #1a4a37 0%, transparent 60%),
+    radial-gradient(ellipse at 50% -12%, rgba(212,175,55,0.09) 0%, transparent 55%),
     var(--wood);
   color:var(--cream);
   font-family:'Inter',sans-serif;
   min-height:100vh;
   padding:28px 16px 60px;
 }
-  @media (max-width: 480px){
-  body{ padding:20px 6px 40px; }
+
+@media (max-width: 480px){
+  body{ padding:18px 8px 40px; }
   .wrap{ max-width:100%; }
-  .table-frame{ aspect-ratio:15/12; }
+  .eyebrow{ font-size:12px; }
+  .date-line{ font-size:15.5px; margin-bottom:4px; }
+  .venue-line{ font-size:12.5px; margin-bottom:22px; gap:8px; }
+  .status{ font-size:21px; padding:16px 14px; }
+  .status .sub{ font-size:13.5px; }
+  .join input{ font-size:16px; padding:14px 14px; }
+  .join button{ font-size:15.5px; padding:0 18px; }
+  .dealer-plate{ font-size:14.5px; padding:10px 18px; }
+  .dealer-plate.unset{ font-size:14px; }
+  .table-frame{ aspect-ratio:15/13; }
+  .seat{ width:66px; }
+  .seat .chip{ width:50px; height:50px; font-size:15px; }
+  .seat .name{ font-size:12.5px; }
+  .felt-center .count{ font-size:clamp(32px,9vw,44px); }
+  .section-label{ font-size:16.5px; }
+  .bench-list li{ font-size:16px; padding:12px 14px; }
+  .footer-row{ font-size:13px; }
 }
 
 .wrap{max-width:640px;margin:0 auto;}
@@ -66,7 +83,32 @@ h1{
   text-align:center;
   color:var(--cream-dim);
   font-size:14px;
+  margin-bottom:6px;
+}
+
+.venue-line{
+  text-align:center;
+  color:var(--gold-soft);
+  font-size:12px;
+  font-weight:600;
+  letter-spacing:.14em;
+  text-transform:uppercase;
   margin-bottom:26px;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+}
+.venue-line:hover{color:var(--gold);}
+.venue-line .tiger-mark{
+  width:26px;height:16px;
+  flex-shrink:0;
+  opacity:.85;
+}
+.venue-line .rule{
+  width:20px;height:1px;
+  background:rgba(230,200,102,0.4);
 }
 
 /* Status banner */
@@ -394,6 +436,28 @@ h1{
   <div class="eyebrow">Weekly Game</div>
   <h1>Thursday Night Poker</h1>
   <div class="date-line" id="dateLine">loading…</div>
+  <div class="venue-line" id="venueLine">
+    <span class="rule"></span>
+    <svg class="tiger-mark" viewBox="0 0 100 50" xmlns="http://www.w3.org/2000/svg">
+      <g fill="currentColor">
+        <ellipse cx="46" cy="26" rx="24" ry="9"/>
+        <circle cx="76" cy="18" r="8"/>
+        <path d="M70 11 L74 4 L77 12 Z"/>
+        <path d="M22 24 Q6 20 4 30 Q10 26 22 30 Z"/>
+        <rect x="26" y="32" width="4" height="14" rx="2"/>
+        <rect x="36" y="34" width="4" height="12" rx="2"/>
+        <rect x="58" y="34" width="4" height="12" rx="2"/>
+        <rect x="66" y="32" width="4" height="14" rx="2"/>
+      </g>
+      <g stroke="#1d1b18" stroke-width="1.6" stroke-linecap="round">
+        <line x1="36" y1="20" x2="40" y2="16"/>
+        <line x1="44" y1="19" x2="48" y2="15"/>
+        <line x1="52" y1="20" x2="56" y2="17"/>
+      </g>
+    </svg>
+    <span id="venueText">House of Tiger</span>
+    <span class="rule"></span>
+  </div>
 
   <div class="status waiting" id="statusBanner">
     <div id="statusMain">Checking the table…</div>
@@ -438,6 +502,7 @@ h1{
 <script>
 const MAX_SEATS = 9;
 const MIN_TO_CONFIRM = 8;
+const DEFAULT_VENUE = 'House of Tiger';
 
 function getNextThursday(){
   const now = new Date();
@@ -471,7 +536,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const weekRef = db.ref('poker-signups/' + weekKey);
 
-let state = { main: [], bench: [], dealer: '' };
+let state = { main: [], bench: [], dealer: '', venue: DEFAULT_VENUE };
 
 function showToast(msg){
   const t = document.getElementById('toast');
@@ -494,7 +559,9 @@ function seatPosition(i, total){
 }
 
 function render(){
-  const { main, bench, dealer } = state;
+  const { main, bench, dealer, venue } = state;
+
+  document.getElementById('venueText').textContent = venue || DEFAULT_VENUE;
 
   // dealer plate
   const plate = document.getElementById('dealerPlate');
@@ -582,7 +649,7 @@ function escapeAttr(s){ return escapeHtml(s); }
 // Live listener: fires immediately with current data, then again on every change from anyone
 weekRef.on('value', (snapshot) => {
   const val = snapshot.val();
-  state = { main: (val && val.main) || [], bench: (val && val.bench) || [], dealer: (val && val.dealer) || '' };
+  state = { main: (val && val.main) || [], bench: (val && val.bench) || [], dealer: (val && val.dealer) || '', venue: (val && val.venue) || DEFAULT_VENUE };
   render();
 }, (err) => {
   showToast("Couldn't connect — check your connection");
@@ -656,14 +723,24 @@ document.getElementById('nameInput').addEventListener('keydown', (e)=>{
 document.getElementById('refreshBtn').addEventListener('click', ()=>{
   weekRef.once('value').then(snap=>{
     const val = snap.val();
-    state = { main: (val && val.main) || [], bench: (val && val.bench) || [], dealer: (val && val.dealer) || '' };
+    state = { main: (val && val.main) || [], bench: (val && val.bench) || [], dealer: (val && val.dealer) || '', venue: (val && val.venue) || DEFAULT_VENUE };
     render();
     showToast('Refreshed');
   });
 });
 
+document.getElementById('venueLine').addEventListener('click', async ()=>{
+  const name = window.prompt("Where's the game this week?", state.venue || DEFAULT_VENUE);
+  if(name === null) return; // cancelled
+  const trimmed = name.trim();
+  state.venue = trimmed || DEFAULT_VENUE;
+  await saveState();
+  render();
+  showToast(`Venue set to ${state.venue}`);
+});
+
 document.getElementById('dealerPlate').addEventListener('click', async (e)=>{
-if(e.target.id === 'dealerRemove'){
+  if(e.target.id === 'dealerRemove'){
     e.stopPropagation();
     const was = state.dealer;
     if(!window.confirm(`Clear ${was} as dealer?`)) return;
