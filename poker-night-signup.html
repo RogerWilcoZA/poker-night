@@ -35,6 +35,11 @@ body{
   min-height:100vh;
   padding:28px 16px 60px;
 }
+  @media (max-width: 480px){
+  body{ padding:20px 6px 40px; }
+  .wrap{ max-width:100%; }
+  .table-frame{ aspect-ratio:15/12; }
+}
 
 .wrap{max-width:640px;margin:0 auto;}
 
@@ -639,6 +644,8 @@ function onRemoveClick(e){
   const btn = e.currentTarget;
   const name = btn.getAttribute('data-name');
   const list = btn.getAttribute('data-list');
+  const spot = list === 'main' ? 'the table' : 'the bench';
+  if(!window.confirm(`Remove ${name} from ${spot}?`)) return;
   removeName(name, list);
 }
 
@@ -656,9 +663,10 @@ document.getElementById('refreshBtn').addEventListener('click', ()=>{
 });
 
 document.getElementById('dealerPlate').addEventListener('click', async (e)=>{
-  if(e.target.id === 'dealerRemove'){
+if(e.target.id === 'dealerRemove'){
     e.stopPropagation();
     const was = state.dealer;
+    if(!window.confirm(`Clear ${was} as dealer?`)) return;
     state.dealer = '';
     await saveState();
     render();
