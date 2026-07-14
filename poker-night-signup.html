@@ -437,10 +437,8 @@ const MIN_TO_CONFIRM = 8;
 function getNextThursday(){
   const now = new Date();
   const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const day = d.getDay(); // 0 Sun ... 4 Thu
-  let diff = (4 - day + 7) % 7;
-  // If today is Thursday, keep today's game until end of day; roll over after.
-  if (day === 4 && now.getHours() >= 23) diff = 7;
+  const day = d.getDay(); // 0 Sun ... 4 Thu ... 6 Sat
+  const diff = (4 - day + 7) % 7; // 0 on Thursday itself, 6 on Friday → rolls to next Thursday
   d.setDate(d.getDate() + diff);
   return d;
 }
